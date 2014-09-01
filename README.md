@@ -23,7 +23,7 @@ or, if you are using the `Meta` extension, with the `Meta` key `bibliography`
     
 ## Using the bibliography
 
-Supported syntax.
+The most basic syntax is `@(key)` to cite a key from your bib file. Other possibilities:
 
 <table>
 <thead>
