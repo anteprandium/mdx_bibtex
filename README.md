@@ -11,7 +11,7 @@ First of all, you need to indicate a bibliography to use this extension. You can
 
     import markdown
     import mdx_bibtex
-    md=markdown.Markdown(extensions=['bib(bibliography=example.bib)'])
+    md=markdown.Markdown(extensions=['bibtex(bibliography=example.bib)'])
     
 or, if you are using the `Meta` extension, with the `Meta` key `bibliography`
 
@@ -77,7 +77,7 @@ Supported syntax.
 </table>
 
 
-At the end of the document, use `[REFERENCES]` to indicate where your list of reference will go.
+At the end of the document, use `[REFERENCES]` to indicate where your list of references will go.
 
     ## References 
 
@@ -89,6 +89,6 @@ At the end of the document, use `[REFERENCES]` to indicate where your list of re
 <p>
 <ul class="citation-references">
 <li class="citation-item" id="bennet70">(Bennett 1970), Bennett, B.M., <em>On the characteristic functions of a local ring</em>, The Annals of Mathematics, <strong>91</strong>(1), 25–87.</li>
-<li class="citation-item" id="wiles95">(Wiles 1995), Wiles, Andrew John, <em>Modular elliptic curves and Fermat’s Last Theorem</em>, Annals of Mathematics, <strong>141</strong>.</li>
+<li class="citation-item" id="wiles95">(Wiles 1995), Wiles, Andrew John, <em>Modular elliptic curves and Fermat’s Last Theorem</em>, Annals of Mathematics, <strong>141</strong>(3), 553-572.</li>
 </ul>
 
