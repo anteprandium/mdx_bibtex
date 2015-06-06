@@ -7,10 +7,10 @@ from bibtexparser.customization import convert_to_unicode, getnames
 import markdown
 from markdown.inlinepatterns import Pattern
 import warnings
+import os
 
 
-def warning_on_one_line(message, category, filename, lineno,
-                        file=None, line=None):
+def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
     return '%s:%s:%s:%s\n' % (category.__name__, filename, lineno,  message)
 warnings.formatwarning = warning_on_one_line
 
@@ -20,31 +20,31 @@ MOD_YEAR_ONLY = r'-'
 MOD_AUTHOR_ONLY = r'+'
 MOD_NOPAREN = r'.'
 MOD_NOCITE = r'/'
-MODIFIERS = u'[%s%s%s%s]?' % (MOD_YEAR_ONLY, MOD_NOCITE, MOD_AUTHOR_ONLY,
-                              MOD_NOPAREN)
+MODIFIERS = u'[%s%s%s%s]?' % (
+    MOD_YEAR_ONLY, MOD_NOCITE, MOD_AUTHOR_ONLY, MOD_NOPAREN)
 CITATION_MODIFIERS = u'(?P<mod>%s)' % MODIFIERS
 CITATION_KEY = u'[\w_:\*\;\.\-\+\=\/\&\%\$\·\!]+?'
 OPTIONAL_PREFIX = u'(\[\s*?(?P<prefix>.*?)\s*?\])?'
 OPTIONAL_LOCATOR = u'(\[\s*?(?P<locator>.*?)\s*?\])?'
 CITATION_SINGLE = u'@%s%s\(\s*?(?P<key>%s)\s*?\)%s' % (CITATION_MODIFIERS,
-                                                       OPTIONAL_PREFIX,
-                                                       CITATION_KEY,
-                                                       OPTIONAL_LOCATOR)
+                                                       OPTIONAL_PREFIX, CITATION_KEY, OPTIONAL_LOCATOR)
 CITATIONS = u'@\((?P<multiple>(\s*?%s(\s*\,\s*%s)+\s*?))\)' % (CITATION_KEY,
                                                                CITATION_KEY)
 CITATION = "(%s|%s)" % (CITATION_SINGLE, CITATIONS)
+
 
 # This dict holds html typesetting instructions for biliography items.
 bib_formats = {
     "article": [[u"author_year", u"({})"], [u"author", u", {}"], [u"title", u", <em>{}</em>"],
                 [u"journal", u", {}"], [u"volume", u", <strong>{}</strong>"],
-                [u"number", u"({})"], [u"pages", u", {}"], [u"doi", u", {}"],
-                [u"url", u", {}"]],
+                [u"number", u"({})"], [u"pages", u", {}"], [
+        u"doi", u""],
+        [u"link", u", <code><a href=\"{0}\">{0}</a></code>"]],
     "book": [[u"author_year", u"({})"], [u"author", u", {}"],
-             [u"title", u", {}"], [u"publisher", ", {}"], [u"volume", ", {}"],
-             [u"series", ", {}"], ["edition", ", {} Edition"], [
-                 u"pages", u", {}"],
-             [u"doi", u", {}"], [u"url", u", {}"]],
+             [u"title", u", {}"], [u"volume", ", Volume {}"], [
+                 "edition", ", {} Edition"],
+             [u"series", ", <i>{}</i>"],  [u"pages", u", {}"],
+             [u"doi", u", {}"], [u"url", u", {}"], [u"publisher", ", {}"]],
     "booklet": [[u"author_year", u"({})"],  [u"author", u", {}"],
                 [u"title", u", {}"], [u"howpublished", ", {}"], [
                     u"address", ", {}"],
@@ -107,6 +107,8 @@ def bib_format_record(record):
 
 class BibtexPattern(markdown.inlinepatterns.Pattern):
 
+    """docstring for BibtexPattern"""
+
     def __init__(self,  pattern, xtsn):
         markdown.inlinepatterns.Pattern.__init__(self, pattern)
         self.xtsn = xtsn
@@ -116,7 +118,6 @@ class BibtexPattern(markdown.inlinepatterns.Pattern):
 
 
 class BibtexPostprocessor(markdown.postprocessors.Postprocessor):
-
     mark = "[REFERENCES]"
 
     def __init__(self, xtsn):
@@ -127,12 +128,19 @@ class BibtexPostprocessor(markdown.postprocessors.Postprocessor):
         return text.replace(self.mark, self.xtsn.references())
 
 
-class BibtexExtension(markdown.Extension):
+class BibtexExtension(markdown.extensions.Extension):
 
-    def __init__(self, configs):
-        self.config = {'bibliography': ['', 'name of .bib file to load']}
-        for key, value in configs:
-            self.setConfig(key, value)
+    """docstring for BibtexExtension"""
+
+    def __init__(self, *args, **kwargs):
+        self.config = {
+            'bibliography': ['', 'name of .bib file to load'],
+            'root': ['', 'name of the root folder for looking for bibs']
+        }
+        super(BibtexExtension,self).__init__(*args, **kwargs)
+        # if configs:
+        #     for key, value in configs:
+        #         self.setConfig(key, value)
 
     def extendMarkdown(self, md, md_globals):
         self.md = md
@@ -160,7 +168,7 @@ class BibtexExtension(markdown.Extension):
         # Take the bibliography from the 'bibliography' key
         # in metadata if there is one, else from the configuration
         if hasattr(self.md, 'Meta') and 'bibliography' in self.md.Meta:
-            bibfile = self.md.Meta['bibliography'][0]
+            bibfile = os.path.join(self.getConfig('root'),self.md.Meta['bibliography'][0])
         else:
             bibfile = self.getConfig('bibliography')
         if not bibfile:
@@ -332,5 +340,76 @@ class BibtexExtension(markdown.Extension):
                 + "\n</ul>\n")
 
 
-def makeExtension(configs=None):
-    return BibtexExtension(configs=configs)
+def makeExtension(*args, **kwargs):
+    #return BibtexExtension(configs=configs)
+    return BibtexExtension(*args, **kwargs)
+
+# @(key)    non greedy, allow escaped.
+# @[suffix](key)
+# @(key)[locator]
+# @[prefix](key)[locator]
+# @/(key)   nocite key
+# @/(*)     nocite all
+# @-(key)     only year
+# @+(key)     only name
+# @(key,key,key,...)
+
+# if __name__ == "__main__":
+#
+#     text=u"""Bibliography: example.bib
+#
+# In file `example.bib`
+#
+#     @article{aamport86,
+#       Author = {Leslie A. Aamport},
+#       Journal = {G-Animal's Journal},
+#       Month = jul,
+#       Number = 7,
+#       Pages = {73+},
+#       Title = {The Gnats and Gnus Document Preparation System},
+#       Volume = 41,
+#       Year = 1986}
+#
+#     @inbook{knuth73,
+#       Address = {Reading, Massachusetts},
+#       Author = {Donald E. Knuth},
+#       Chapter = {1.2},
+#       Edition = {Second},
+# Month = {10 } # jan,
+#       Pages = {10--119},
+#       Publisher = {Addison-Wesley},
+#       Series = {The Art of Computer Programming},
+#       Title = {Fundamental Algorithms},
+#       Type = {Section},
+#       Volume = 1,
+#       Year = {1973}}
+#
+#     @techreport{vanRossum95,
+#       Address = {Amsterdam},
+#       Author = {Guido van Rossum},
+#       Institution = {Centrum voor Wiskunde en Informatica (CWI)},
+#       Number = {Technical Report CS-R9526},
+#       Title = {Python tutorial},
+#       Year = {1995}}
+#
+#
+#
+# 1. Simplest of all: `@(knuth73)` produces @(knuth73).
+# 4. You can use a prefix or a locator, or both; and also there's some whitespace allowed: `@[ see ]( aamport86 )[ chapter 11 ]` produces @[ see ]( aamport86 )[ chapter 11 ].
+# 5. Just the year `@-(knuth73)` gives @-(knuth73).
+# 6. Just the author: `@+(knuth73)[ch. 3]` gives @+(knuth73)[ch. 3], and a warning, since the correct form is `@+(knuth73)`. You can use these last two together: @+(knuth73) says @-(knuth73) that ...
+# 2. `@.(knuth73)` writes the citation with no parenthesis.
+# 7. A nocite command (no output): `@/(knuth73)` or  `@/(*)`.@/(*)
+# 8. Compound citation @(aamport86, knuth73)
+#
+# References
+#
+# [REFERENCES]
+#
+#     """
+#
+#     m=markdown.Markdown(extensions=['bib', 'meta'])
+#
+#     print m.convert(text).encode('utf-8')
+#
+#
