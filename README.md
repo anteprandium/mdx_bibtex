@@ -21,6 +21,14 @@ or, if you are using the `Meta` extension, with the `Meta` key `bibliography`
     Neat, you're ready to use the bibliography.
     
     
+In this later case, you can tell the `bibtex` extension where to look for files using the 'root' configuration key:
+    
+    import markdown
+    import mdx_bibtex
+    md=markdown.Markdown(extensions=['bibtex(root=/path/to/bib/folder)'])
+    
+    
+    
 ## Using the bibliography
 
 The most basic syntax is `@(key)` to cite a key from your bib file. Other possibilities:
